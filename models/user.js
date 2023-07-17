@@ -5,10 +5,14 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
-    name: {
+    firstname: {
         type: String,
         required: [true, 'Please provide a name'],
-        maxlength: [40, 'Name should be user 40 characters']
+        maxlength: [40, 'FirstName should be user 40 characters']
+    },
+    lastname: {
+        type: String,
+        maxlength: [40, 'LastName should be user 40 characters']
     },
     email: {
         type: String,
@@ -22,7 +26,31 @@ const userSchema = new mongoose.Schema({
         minlength: [6, 'password should be atleast 6 char'],
         select: false
     },
+    city: {
+        type: String,
+        minlength: [3, 'city should be atleast 6 char'],
+    },
+    phone: {
+        type: String,
+        // match: /^(\()?\d{3}(\))?(-|\s)?\d{3}(-|\s)\d{4}$/,
+        minlength: [10, 'phone should be atleast 10 char'],
+    },
+    country: {
+        type: String,
+        minlength: [3, 'password should be atleast 6 char'],
+    },
     photo: {
+        id: {
+            type: String,
+            required: true
+        },
+        secure_url: {
+            type: String,
+            required: true
+        },
+
+    },
+    cover_image: {
         id: {
             type: String,
             required: true
@@ -36,6 +64,14 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         default: 'user'
+    },
+    linkedln: {
+        type: String
+    },
+    enable: {
+        type: String,
+        enum: ["enabled", "disabled"],
+        default: "enabled"
     },
     forgotPasswordToken: String,
     forgotPasswordExpiry: String,

@@ -33,7 +33,9 @@ router.route('/admin/user/:id')
     .get(isLoggedIn, customRole('admin'), adminSingleUser)
     .put(isLoggedIn, customRole('admin'), adminUpdateSingleUserDetails)
     .delete(isLoggedIn, customRole('admin'), adminDeleteSingleUserDetails)
-    // Manager only Route
+
+
+// Manager only Route
 router.route('/manager/users').get(isLoggedIn, customRole('manager'), managerAllUser);
 
 

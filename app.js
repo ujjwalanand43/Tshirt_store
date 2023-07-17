@@ -4,6 +4,10 @@ const app = express();
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const fileUpload = require('express-fileupload');
+const cors = require('cors');
+
+// Enable CORS for all routes
+app.use(cors());
 
 // for swagger documentation
 const swaggerUi = require('swagger-ui-express');
@@ -32,10 +36,16 @@ app.use(morgan("tiny"));
 // Import All route here
 const home = require('./routes/home');
 const user = require('./routes/user');
+const post = require('./routes/post');
+const media = require('./routes/postMedia');
+// const blog = require('./routes/blog');
 
 // router middleware
 app.use('/api/v1', home);
 app.use('/api/v1', user);
+app.use('/api/v1', post);
+app.use('/api/v1', media);
+// app.use('/api/v1', blog);
 
 app.get('/signup', (req, res) => {
     res.render('postform')

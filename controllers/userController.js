@@ -2,38 +2,68 @@ const User = require('../models/user');
 const BigPromise = require('../middlewares/bigPromise');
 const CustomError = require('../utils/customError');
 const cookieToken = require('../utils/cookieToken');
-const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary');
 const mailHelper = require('../utils/emailHelper');
 const crypto = require('crypto');
 
 exports.signup = BigPromise(async(req, res, next) => {
-    if (!req.files) {
-        return next(new CustomError("Photo is required for signup", 400));
-    };
+    // if (!req.files) {
+    //     return next(new CustomError("Photo is required for signup", 400));
+    // };
 
-    const { name, email, password } = req.body;
+    const {
+        firstname,
+        lastname,
+        email,
+        password,
+        city,
+        phone,
+        country,
+        linkedln,
+        enable
+    } = req.body;
 
-    if (!email || !name || !password) {
+    if (!email || !firstname || !password) {
         return next(new CustomError('Name , email and password are required', 400));
     }
+    let photoResult;
+    let coverImageResult;
+    if (req.files.photo || req.files.cover_image) {
+        let file = req.files.photo
+        let cover_image = req.files.cover_image
+        photoResult = await cloudinary.v2.uploader.upload(file.tempFilePath, {
+            folder: process.env.CLOUDINARY_FOLDER_FOR_USER,
+            width: 150,
+            crop: "scale"
+        });
+        coverImageResult = await cloudinary.v2.uploader.upload(cover_image.tempFilePath, {
+            folder: process.env.CLOUDINARY_FOLDER_FOR_COVERIMAGE_USER,
+            width: 150,
+            crop: "scale"
+        });
 
-    let file = req.files.photo
-    const result = await cloudinary.v2.uploader.upload(file.tempFilePath, {
-        folder: process.env.CLOUDINARY_FOLDER_FOR_USER,
-        width: 150,
-        crop: "scale"
-    });
+    }
+
 
 
     const user = await User.create({
-        name,
+        firstname,
+        lastname,
         email,
         password,
         photo: {
-            id: result.public_id,
-            secure_url: result.secure_url
-        }
+            id: photoResult.public_id,
+            secure_url: photoResult.secure_url
+        },
+        cover_image: {
+            id: coverImageResult.public_id,
+            secure_url: coverImageResult.secure_url
+        },
+        city,
+        phone,
+        country,
+        linkedln,
+        enable
     });
 
     cookieToken(user, res);
@@ -107,7 +137,7 @@ exports.forgotPassword = BigPromise(async(req, res, next) => {
     try {
         await mailHelper({
             email: user.email,
-            subject: "AU Tshirt Store Password reset email",
+            subject: "AU Blog Password reset email",
             message
         });
 
@@ -187,32 +217,62 @@ exports.changePassword = BigPromise(async(req, res, next) => {
 });
 
 exports.updateUserDetails = BigPromise(async(req, res, next) => {
-    if (req.body.name === '' || req.body.email === '') {
-        return next(new CustomError('Email And Name is required', 400))
-    }
+    const requiredFields = [
+        req.body.firstname,
+        req.body.email,
+        req.body.lastname,
+        req.body.phone,
+        req.body.country,
+        req.body.linkedln,
+        req.body.city
+    ];
+    requiredFields.map((singleField) => {
+        console.log(singleField)
+        if (singleField === '') {
+            const errorMessage = `Field Cannot have empty value}`;
+            return next(new CustomError(errorMessage, 400));
+        }
+    });
+
     const newdata = {
-        name: req.body.name,
-        email: req.body.email
+        firstname: req.body.firstname,
+        email: req.body.email,
+        lastname: req.body.lastname,
+        phone: req.body.phone,
+        country: req.body.country,
+        linkedln: req.body.linkedln,
+        city: req.body.city,
     };
 
     if (req.files) {
         const user = await User.findById(req.user.id);
 
         const imageId = user.photo.id;
+        const cover_imageId = user.cover_image.id;
 
         // delete existing photo on cloudinary
         const response = await cloudinary.v2.uploader.destroy(imageId);
+        const response2 = await cloudinary.v2.uploader.destroy(cover_imageId);
 
         // Upload the new photo
-        const result = await cloudinary.v2.uploader.upload(req.files.photo.tempFilePath, {
+        const photoResult = await cloudinary.v2.uploader.upload(req.files.photo.tempFilePath, {
             folder: process.env.CLOUDINARY_FOLDER_FOR_USER,
+            width: 150,
+            crop: "scale"
+        });
+        const coverImageResult = await cloudinary.v2.uploader.upload(req.files.cover_image.tempFilePath, {
+            folder: process.env.CLOUDINARY_FOLDER_FOR_COVERIMAGE_USER,
             width: 150,
             crop: "scale"
         });
 
         newdata.photo = {
-            id: result.public_id,
-            secure_url: result.secure_url
+            id: photoResult.public_id,
+            secure_url: photoResult.secure_url
+        };
+        newdata.cover_image = {
+            id: coverImageResult.public_id,
+            secure_url: coverImageResult.secure_url
         };
     }
 
@@ -250,14 +310,33 @@ exports.adminSingleUser = BigPromise(async(req, res, next) => {
 });
 
 exports.adminUpdateSingleUserDetails = BigPromise(async(req, res, next) => {
-    if (req.body.name === '' || req.body.email === '') {
-        return next(new CustomError('Email And Name is required', 400))
-    }
+    const requiredFields = [
+        req.body.firstname,
+        req.body.email,
+        req.body.lastname,
+        req.body.phone,
+        req.body.country,
+        req.body.linkedln,
+        req.body.city
+    ];
+    requiredFields.map((singleField) => {
+        console.log(singleField)
+        if (singleField === '') {
+            const errorMessage = `Field Cannot have empty value}`;
+            return next(new CustomError(errorMessage, 400));
+        }
+    });
+
     const newdata = {
-        name: req.body.name,
+        firstname: req.body.firstname,
         email: req.body.email,
-        role: req.body.role
+        lastname: req.body.lastname,
+        phone: req.body.phone,
+        country: req.body.country,
+        linkedln: req.body.linkedln,
+        city: req.body.city,
     };
+
 
     const user = await User.findByIdAndUpdate(req.params.id, newdata, {
         new: true,
@@ -270,6 +349,7 @@ exports.adminUpdateSingleUserDetails = BigPromise(async(req, res, next) => {
         user
     });
 });
+
 exports.adminDeleteSingleUserDetails = BigPromise(async(req, res, next) => {
     const user = await User.findById(req.params.id);
 
@@ -279,17 +359,12 @@ exports.adminDeleteSingleUserDetails = BigPromise(async(req, res, next) => {
     const imageId = user.photo.id;
     await cloudinary.v2.uploader.destroy(imageId);
     console.log(user)
-    await user.remove({}, function(err) {
-        if (err) {
-            return next(new CustomError('Some error occured', 401))
-        } else {
-            res.status(200).json({
-                success: true,
-                message: "User Deleted Successfully"
-            });
-        }
-    });
+    await User.findByIdAndDelete(user)
 
+    res.status(200).json({
+        success: true,
+        message: 'User deleted successfully'
+    });
 
 });
 
